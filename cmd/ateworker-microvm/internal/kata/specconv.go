@@ -149,6 +149,12 @@ func SpecToAgentPB(s *specs.Spec) *agentpb.Spec {
 				}
 				res.CPU = cpu
 			}
+			// kata-agent 4.3.1 inverts its has_Pids check and drops a pids
+			// limit it is sent, so the guest doesn't enforce this yet. See
+			// https://github.com/kata-containers/kata-containers/pull/14141.
+			if r.Pids != nil && r.Pids.Limit != nil {
+				res.Pids = &agentpb.LinuxPids{Limit: *r.Pids.Limit}
+			}
 			l.Resources = res
 		}
 		out.Linux = l

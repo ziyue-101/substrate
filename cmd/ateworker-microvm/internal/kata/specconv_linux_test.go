@@ -29,12 +29,14 @@ func TestSpecToAgentPB_ResourceLimits(t *testing.T) {
 	quota := int64(20000)
 	period := uint64(100000)
 	shares := uint64(1024)
+	pids := int64(128)
 
 	got := SpecToAgentPB(&specs.Spec{
 		Linux: &specs.Linux{
 			Resources: &specs.LinuxResources{
 				Memory: &specs.LinuxMemory{Limit: &memLimit},
 				CPU:    &specs.LinuxCPU{Shares: &shares, Quota: &quota, Period: &period},
+				Pids:   &specs.LinuxPids{Limit: &pids},
 			},
 		},
 	})
@@ -62,10 +64,13 @@ func TestSpecToAgentPB_ResourceLimits(t *testing.T) {
 	if r.CPU.Shares != shares {
 		t.Errorf("CPU.Shares = %d, want %d to still be carried", r.CPU.Shares, shares)
 	}
+	if r.Pids == nil || r.Pids.Limit != pids {
+		t.Errorf("Resources.Pids = %v, want a limit of %d", r.Pids, pids)
+	}
 }
 
-// A spec with no memory or quota must not gain empty sub-messages, so specs
-// that declare no limits convert exactly as they did before.
+// A spec with no memory, quota or pids limit must not gain empty sub-messages,
+// so specs that declare no limits convert exactly as they did before.
 func TestSpecToAgentPB_NoLimitsUnchanged(t *testing.T) {
 	shares := uint64(1024)
 	got := SpecToAgentPB(&specs.Spec{
@@ -79,6 +84,9 @@ func TestSpecToAgentPB_NoLimitsUnchanged(t *testing.T) {
 	r := got.Linux.Resources
 	if r.Memory != nil {
 		t.Errorf("Resources.Memory = %v, want nil when the spec sets none", r.Memory)
+	}
+	if r.Pids != nil {
+		t.Errorf("Resources.Pids = %v, want nil when the spec sets none", r.Pids)
 	}
 	if r.CPU == nil || r.CPU.Shares != shares {
 		t.Errorf("CPU = %v, want shares %d", r.CPU, shares)
